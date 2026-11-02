@@ -219,6 +219,26 @@ Open your browser and navigate to: **`http://127.0.0.1:5000/`**
 
 ---
 
+### Docker Execution (Local & Cloud)
+
+#### Run with Docker Compose (Recommended)
+```bash
+docker compose up --build
+```
+This builds the image, starts the container on `http://localhost:5000`, and attaches persistent volumes for uploaded files and the SQLite database.
+
+#### Or Run with Docker CLI
+```bash
+# 1. Build Docker image
+docker build -t quotacloud:latest .
+
+# 2. Run container
+docker run -d -p 5000:5000 --name quotacloud_app quotacloud:latest
+```
+Access at **`http://127.0.0.1:5000/`**.
+
+---
+
 ## 8. Ubuntu / Linux Hadoop HDFS Deployment Guide
 
 To connect QuotaCloud to a live Apache Hadoop cluster:

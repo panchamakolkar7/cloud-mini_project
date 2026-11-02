@@ -1,0 +1,25 @@
+# Git and environments
+.git/
+.gitignore
+venv/
+.venv/
+env/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Local sensitive configuration (use environment variables in Docker)
+.env
+
+# Archive files
+*.zip
+
+# Temporary test data
+storage/test_data/
+
+# OS-generated files
+.DS_Store
+Thumbs.db

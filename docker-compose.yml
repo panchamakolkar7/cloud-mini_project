@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: quotacloud_saas
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - STORAGE_BACKEND=local
+      - DEFAULT_USER_QUOTA_MB=51200
+      - SYSTEM_STORAGE_CAPACITY_MB=512000
+      - MAX_CONTENT_LENGTH_MB=5120
+      - STORAGE_WARNING_THRESHOLD_PERCENT=80
+      - SECRET_KEY=quotacloud_docker_super_secret_key_2026
+    volumes:
+      # Persistent volume for uploaded user files
+      - quotacloud_storage:/app/storage/data
+      # Persistent volume for SQLite database
+      - quotacloud_db:/app/instance
+
+volumes:
+  quotacloud_storage:
+    driver: local
+  quotacloud_db:
+    driver: local
