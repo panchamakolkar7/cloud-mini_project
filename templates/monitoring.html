@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block title %}Resource Monitoring — QuotaCloud{% endblock %}
+{% block header_title %}Cloud Resource & HDFS Monitoring{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold text-navy mb-1">Resource Utilization & Storage Infrastructure</h3>
+      <p class="text-muted mb-0">Live diagnostic metrics, per-user quota allocation distribution, and Hadoop connection health.</p>
+    </div>
+    <div>
+      <a href="{{ url_for('monitoring.monitoring') }}" class="btn btn-outline-secondary d-flex align-items-center gap-2">
+        <i class="bi bi-arrow-clockwise"></i>
+        <span>Refresh Diagnostics</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Backend Health Diagnostic Card -->
+  <div class="card mb-4 border-0 shadow-sm">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+      <span class="fw-semibold text-navy"><i class="bi bi-hdd-network-fill me-2 text-teal"></i>Storage Backend Health Check</span>
+      <span class="badge {% if backend_health.status == 'connected' %}bg-success{% else %}bg-danger{% endif %} px-3 py-2">
+        <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>
+        {{ backend_health.status|upper }}
+      </span>
+    </div>
+    <div class="card-body p-4">
+      <div class="row g-4 align-items-center">
+        <div class="col-md-7">
+          <h5 class="fw-bold text-navy mb-2">Engine: {{ backend_health.backend|upper }}</h5>
+          <p class="text-secondary mb-3">{{ backend_health.message }}</p>
+
+          <div class="bg-light p-3 rounded-3 small border">
+            {% if backend_health.backend == 'hdfs' %}
+              <div class="row g-2">
+                <div class="col-sm-4 text-muted">NameNode URL:</div>
+                <div class="col-sm-8 font-monospace fw-semibold">{{ backend_health.details.get('namenode_url') }}</div>
+                <div class="col-sm-4 text-muted">HDFS User:</div>
+                <div class="col-sm-8 font-monospace">{{ backend_health.details.get('hdfs_user') }}</div>
+                <div class="col-sm-4 text-muted">Root Directory:</div>
+                <div class="col-sm-8 font-monospace">{{ backend_health.details.get('root_dir') }}</div>
+                {% if backend_health.details.get('error') %}
+                  <div class="col-sm-4 text-danger">Error:</div>
+                  <div class="col-sm-8 text-danger font-monospace">{{ backend_health.details.get('error') }}</div>
+                {% endif %}
+              </div>
+            {% else %}
+              <div class="row g-2">
+                <div class="col-sm-4 text-muted">Storage Path:</div>
+                <div class="col-sm-8 font-monospace">{{ backend_health.details.get('storage_directory') }}</div>
+                <div class="col-sm-4 text-muted">Disk Free:</div>
+                <div class="col-sm-8 fw-semibold text-success">{{ backend_health.details.get('disk_free_human') }}</div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="col-md-5">
+          <div class="p-3 border rounded-3 bg-white">
+            <h6 class="fw-bold text-navy mb-2" style="font-size: 0.88rem;">HDFS Connection Architecture</h6>
+            <p class="text-muted small mb-2">
+              QuotaCloud connects to Hadoop Distributed File System via WebHDFS REST API. User quotas are verified locally before sending stream chunks to NameNode and DataNodes.
+            </p>
+            <small class="text-teal fw-medium d-block">
+              <i class="bi bi-info-circle me-1"></i>
+              To switch between Local & HDFS, edit <code>STORAGE_BACKEND</code> in <code>.env</code>.
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quota Distribution Chart & Warnings Row -->
+  <div class="row g-4 mb-4">
+    <!-- Bar Chart -->
+    <div class="col-lg-7">
+      <div class="card h-100">
+        <div class="card-header bg-white py-3">
+          <span class="fw-semibold text-navy"><i class="bi bi-bar-chart-fill me-2 text-teal"></i>Storage Usage by User</span>
+        </div>
+        <div class="card-body p-4">
+          <div style="height: 300px;">
+            <canvas id="userQuotaBarChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Nearing Quota (>= 80%) -->
+    <div class="col-lg-5">
+      <div class="card h-100">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <span class="fw-semibold text-navy"><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>Users Nearing Quota (&ge; 80%)</span>
+          <span class="badge bg-light text-muted border">{{ near_quota_users|length }} Accounts</span>
+        </div>
+        <div class="card-body p-0">
+          {% if near_quota_users %}
+            <div class="list-group list-group-flush">
+              {% for u in near_quota_users %}
+                <div class="list-group-item p-3">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-navy">{{ u.username }}</span>
+                    <span class="badge {% if u.is_quota_full %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                      {{ u.usage_percentage }}% Quota
+                    </span>
+                  </div>
+                  <div class="qc-progress mb-2" style="height: 8px;">
+                    <div class="qc-progress-bar {% if u.is_quota_full %}qc-progress-danger{% else %}qc-progress-warning{% endif %}"
+                         style="width: {{ u.usage_percentage }}%;"></div>
+                  </div>
+                  <div class="d-flex justify-content-between text-muted small">
+                    <span>Used: {{ u.readable_used }}</span>
+                    <span>Remaining: {{ u.readable_remaining }}</span>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-5">
+              <i class="bi bi-check-circle-fill text-success" style="font-size: 2.5rem;"></i>
+              <h6 class="fw-semibold text-navy mt-2">Optimal Utilization</h6>
+              <p class="text-muted small mb-0">No users have crossed the 80% quota threshold.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Storage Operation Errors & Security Blocks -->
+  <div class="card">
+    <div class="card-header bg-white py-3">
+      <span class="fw-semibold text-navy"><i class="bi bi-shield-x me-2 text-danger"></i>Storage Operation Errors & Upload Blocks</span>
+    </div>
+    <div class="card-body p-0">
+      {% if storage_errors %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Event Type</th>
+                <th>Event Description</th>
+                <th>Client IP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for err in storage_errors %}
+                <tr>
+                  <td class="text-muted small">{{ err.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                  <td class="fw-semibold text-navy">{{ err.user.username if err.user else 'System' }}</td>
+                  <td>
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace" style="font-size: 0.72rem;">
+                      {{ err.action }}
+                    </span>
+                  </td>
+                  <td class="small text-truncate" style="max-width: 450px;" title="{{ err.details }}">{{ err.details }}</td>
+                  <td class="text-muted small font-monospace">{{ err.ip_address or '-' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center py-4 text-muted small">No storage errors or rejected uploads logged.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/monitoring.js') }}"></script>
+{% endblock %}

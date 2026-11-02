@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Account — QuotaCloud{% endblock %}
+
+{% block public_content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card shadow border-0 rounded-4">
+      <div class="card-body p-4 p-sm-5">
+        <div class="text-center mb-4">
+          <div class="brand-logo-icon mx-auto mb-3" style="width: 50px; height: 50px; font-size: 1.6rem;">
+            <i class="bi bi-cloud-plus-fill"></i>
+          </div>
+          <h3 class="fw-bold text-navy mb-1">Create Account</h3>
+          <p class="text-muted small">Register for your QuotaCloud storage space</p>
+        </div>
+
+        <div class="alert alert-info py-2 px-3 small d-flex align-items-center mb-4">
+          <i class="bi bi-gift-fill me-2 fs-5 text-teal"></i>
+          <div>New accounts automatically receive a <strong>50 GB</strong> cloud storage quota.</div>
+        </div>
+
+        <form action="{{ url_for('auth.register') }}" method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+          <div class="mb-3">
+            <label for="username" class="form-label fw-semibold text-secondary small">Username</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light text-muted"><i class="bi bi-person"></i></span>
+              <input type="text" class="form-control" id="username" name="username" placeholder="Choose a username" required minlength="3" maxlength="30" autofocus>
+            </div>
+            <div class="form-text small">3-30 alphanumeric characters, dashes, or underscores.</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="email" class="form-label fw-semibold text-secondary small">Email Address</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light text-muted"><i class="bi bi-envelope"></i></span>
+              <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" required>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-4">
+            <div class="col-sm-6">
+              <label for="password" class="form-label fw-semibold text-secondary small">Password</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted"><i class="bi bi-lock"></i></span>
+                <input type="password" class="form-control" id="password" name="password" placeholder="At least 6 chars" required minlength="6">
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <label for="confirm_password" class="form-label fw-semibold text-secondary small">Confirm Password</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted"><i class="bi bi-shield-lock"></i></span>
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Repeat password" required minlength="6">
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-teal w-100 py-2 fw-semibold">
+            <i class="bi bi-person-check-fill me-2"></i>Register Account
+          </button>
+        </form>
+
+        <div class="text-center mt-4 pt-2 border-top">
+          <p class="small text-muted mb-0">Already registered? <a href="{{ url_for('auth.login') }}" class="text-teal fw-semibold text-decoration-none">Sign In here</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

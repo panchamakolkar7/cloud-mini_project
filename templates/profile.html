@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile & Security — QuotaCloud{% endblock %}
+{% block header_title %}Profile & Security Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="row g-4">
+    <!-- User Overview Card -->
+    <div class="col-lg-5">
+      <div class="card h-100">
+        <div class="card-header bg-white py-3">
+          <span class="fw-semibold text-navy"><i class="bi bi-person-badge me-2 text-teal"></i>Account Details</span>
+        </div>
+        <div class="card-body p-4 text-center">
+          <div class="user-avatar-circle mx-auto mb-3" style="width: 72px; height: 72px; font-size: 1.8rem;">
+            {{ user.username[0]|upper }}
+          </div>
+          <h4 class="fw-bold text-navy mb-1">{{ user.username }}</h4>
+          <p class="text-muted small mb-3">{{ user.email }}</p>
+
+          <div class="d-inline-flex gap-2 mb-4">
+            <span class="badge {% if user.is_admin %}bg-primary{% else %}bg-secondary{% endif %} px-3 py-2">
+              {{ user.role|upper }}
+            </span>
+            <span class="badge bg-success px-3 py-2">Active Account</span>
+          </div>
+
+          <div class="list-group list-group-flush text-start border-top">
+            <div class="list-group-item d-flex justify-content-between px-0 py-2">
+              <span class="text-muted small">Assigned Quota:</span>
+              <span class="fw-semibold text-navy">{{ user.readable_quota }}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between px-0 py-2">
+              <span class="text-muted small">Storage Consumed:</span>
+              <span class="fw-semibold text-navy">{{ user.readable_used }} ({{ user.usage_percentage }}%)</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between px-0 py-2">
+              <span class="text-muted small">Free Storage:</span>
+              <span class="fw-semibold text-navy">{{ user.readable_remaining }}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between px-0 py-2">
+              <span class="text-muted small">Member Since:</span>
+              <span class="text-secondary small">{{ user.created_at.strftime('%B %d, %Y') }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Password Modification Card -->
+    <div class="col-lg-7">
+      <div class="card h-100">
+        <div class="card-header bg-white py-3">
+          <span class="fw-semibold text-navy"><i class="bi bi-shield-lock me-2 text-teal"></i>Update Password</span>
+        </div>
+        <div class="card-body p-4">
+          <form action="{{ url_for('auth.profile') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="action" value="change_password">
+
+            <div class="mb-3">
+              <label for="current_password" class="form-label fw-semibold text-secondary small">Current Password</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
+                <input type="password" class="form-control" id="current_password" name="current_password" required>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="new_password" class="form-label fw-semibold text-secondary small">New Password</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
+                <input type="password" class="form-control" id="new_password" name="new_password" required minlength="6" placeholder="Minimum 6 characters">
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="confirm_password" class="form-label fw-semibold text-secondary small">Confirm New Password</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-check-circle"></i></span>
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="6" placeholder="Re-type new password">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-teal">
+              <i class="bi bi-shield-check me-2"></i>Save New Password
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

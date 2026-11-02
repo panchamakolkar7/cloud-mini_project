@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: quotacloud
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: SECRET_KEY
+        generateValue: true
+      - key: STORAGE_BACKEND
+        value: local
+      - key: DEFAULT_USER_QUOTA_MB
+        value: "51200"
+      - key: SYSTEM_STORAGE_CAPACITY_MB
+        value: "512000"
+      - key: MAX_CONTENT_LENGTH_MB
+        value: "5120"
+      - key: STORAGE_WARNING_THRESHOLD_PERCENT
+        value: "80"

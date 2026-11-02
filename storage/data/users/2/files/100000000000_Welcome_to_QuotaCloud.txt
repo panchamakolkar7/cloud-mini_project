@@ -1,0 +1,8 @@
+Welcome to QuotaCloud!
+
+QuotaCloud is a multi-user cloud storage and resource management platform.
+Key Features:
+- Real-time storage quota tracking
+- 80% usage threshold alerts
+- Hadoop HDFS and Local storage abstraction
+- Secure file access control

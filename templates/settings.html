@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}System Settings — QuotaCloud{% endblock %}
+{% block header_title %}System & Cloud Configuration{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold text-navy mb-1">Global Storage Settings</h3>
+      <p class="text-muted mb-0">Adjust default quota allocations, threshold alerts, and review cluster storage parameters.</p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Storage & Quota Policy Settings -->
+    <div class="col-lg-7">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+          <span class="fw-semibold text-navy"><i class="bi bi-sliders me-2 text-teal"></i>Storage Policy Configuration</span>
+        </div>
+        <div class="card-body p-4">
+          <form action="{{ url_for('admin.settings') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-secondary">Default User Quota (MB)</label>
+              <div class="input-group">
+                <input type="number" name="default_quota_mb" class="form-control" value="{{ settings.default_quota_mb }}" min="1" max="100000" required>
+                <span class="input-group-text bg-light text-muted">MB</span>
+              </div>
+              <div class="form-text small">Storage space automatically granted to new user registrations.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-secondary">Storage Warning Alert Threshold (%)</label>
+              <div class="input-group">
+                <input type="number" name="warning_threshold_percent" class="form-control" value="{{ settings.warning_threshold_percent }}" min="10" max="95" step="1" required>
+                <span class="input-group-text bg-light text-muted">%</span>
+              </div>
+              <div class="form-text small">Percentage of allocated quota that triggers yellow warning banners and alerts (default: 80%).</div>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label small fw-semibold text-secondary">Theoretical Cloud Cluster Capacity (MB)</label>
+              <div class="input-group">
+                <input type="number" name="system_capacity_mb" class="form-control" value="{{ settings.system_capacity_mb }}" min="100" max="10000000" required>
+                <span class="input-group-text bg-light text-muted">MB</span>
+              </div>
+              <div class="form-text small">Total physical or distributed cloud storage envelope represented in dashboard gauges.</div>
+            </div>
+
+            <button type="submit" class="btn btn-teal">
+              <i class="bi bi-save me-1"></i>Save Configuration
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Storage Engine Architecture Box -->
+    <div class="col-lg-5">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <span class="fw-semibold text-navy"><i class="bi bi-diagram-3 me-2 text-teal"></i>Storage Backend Info</span>
+          <span class="badge {% if backend_health.status == 'connected' %}bg-success{% else %}bg-danger{% endif %}">
+            {{ backend_health.status|capitalize }}
+          </span>
+        </div>
+        <div class="card-body p-4">
+          <div class="list-group list-group-flush small">
+            <div class="list-group-item d-flex justify-content-between px-0 py-2">
+              <span class="text-muted">Configured Backend:</span>
+              <span class="fw-bold font-monospace text-navy">{{ settings.storage_backend|upper }}</span>
+            </div>
+
+            {% if settings.storage_backend == 'hdfs' %}
+              <div class="list-group-item d-flex justify-content-between px-0 py-2">
+                <span class="text-muted">NameNode URL:</span>
+                <span class="font-monospace text-teal text-truncate" style="max-width: 200px;">{{ settings.hdfs_namenode_url }}</span>
+              </div>
+              <div class="list-group-item d-flex justify-content-between px-0 py-2">
+                <span class="text-muted">HDFS User:</span>
+                <span class="font-monospace">{{ settings.hdfs_user }}</span>
+              </div>
+              <div class="list-group-item d-flex justify-content-between px-0 py-2">
+                <span class="text-muted">Root Path:</span>
+                <span class="font-monospace">{{ settings.hdfs_root_dir }}</span>
+              </div>
+            {% else %}
+              <div class="list-group-item d-flex justify-content-between px-0 py-2">
+                <span class="text-muted">Local Directory:</span>
+                <span class="font-monospace text-truncate" style="max-width: 200px;" title="{{ settings.local_storage_dir }}">{{ settings.local_storage_dir }}</span>
+              </div>
+            {% endif %}
+
+            <div class="list-group-item d-flex justify-content-between px-0 py-2">
+              <span class="text-muted">Database Engine:</span>
+              <span class="font-monospace">SQLite (ACID Compliant)</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between px-0 py-2">
+              <span class="text-muted">Max Upload Limit:</span>
+              <span class="fw-semibold">{{ MAX_CONTENT_LENGTH_MB }} MB</span>
+            </div>
+          </div>
+
+          <div class="mt-4 p-3 bg-light rounded-3 border small">
+            <h6 class="fw-bold text-navy mb-1" style="font-size: 0.85rem;"><i class="bi bi-info-circle text-teal me-1"></i>Switching Storage Modes:</h6>
+            <p class="text-muted mb-0">
+              To toggle between Local Development and Hadoop HDFS, update <code>STORAGE_BACKEND=hdfs</code> or <code>STORAGE_BACKEND=local</code> in your <code>.env</code> file. No database rewrite is required!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

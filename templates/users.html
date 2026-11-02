@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+
+{% block title %}User Management — QuotaCloud{% endblock %}
+{% block header_title %}User Quota & Account Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold text-navy mb-1">Users & Storage Limits</h3>
+      <p class="text-muted mb-0">Manage registered user accounts, allocate storage quotas, and monitor individual utilization.</p>
+    </div>
+    <div>
+      <button class="btn btn-teal d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#createUserModal">
+        <i class="bi bi-person-plus-fill fs-5"></i>
+        <span>Create New User</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="card mb-4">
+    <div class="card-body p-3">
+      <form method="GET" action="{{ url_for('admin.users_list') }}" class="row g-2 align-items-center">
+        <div class="col-md-6">
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
+            <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0" placeholder="Search by username or email...">
+          </div>
+        </div>
+
+        <div class="col-sm-4 col-md-3">
+          <select name="status" class="form-select text-secondary" onchange="this.form.submit()">
+            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Only</option>
+            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive / Deactivated</option>
+          </select>
+        </div>
+
+        <div class="col-sm-4 col-md-3 d-flex gap-2">
+          <button type="submit" class="btn btn-outline-secondary w-100">Filter</button>
+          {% if search_query or status_filter != 'all' %}
+            <a href="{{ url_for('admin.users_list') }}" class="btn btn-light" title="Reset filter"><i class="bi bi-x-lg"></i></a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        <span class="fw-semibold text-navy"><i class="bi bi-people me-2 text-teal"></i>Registered Accounts</span>
+        <span class="badge bg-light text-muted border">{{ users|length }} Total</span>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      {% if users %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th>Quota Limit</th>
+                <th>Used Space</th>
+                <th>Utilization</th>
+                <th>Status</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in users %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="user-avatar-circle" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                        {{ u.username[0]|upper }}
+                      </div>
+                      <div>
+                        <div class="fw-semibold text-navy">{{ u.username }}</div>
+                        <small class="text-muted" style="font-size: 0.76rem;">{{ u.email }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge {% if u.is_admin %}bg-primary{% else %}bg-secondary{% endif %}" style="font-size: 0.72rem;">
+                      {{ u.role|upper }}
+                    </span>
+                  </td>
+                  <td class="fw-medium text-navy">{{ u.readable_quota }}</td>
+                  <td class="text-secondary">{{ u.readable_used }}</td>
+                  <td style="min-width: 140px;">
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="qc-progress flex-grow-1" style="height: 6px;">
+                        <div class="qc-progress-bar {% if u.usage_percentage >= 90 %}qc-progress-danger{% elif u.usage_percentage >= 80 %}qc-progress-warning{% else %}qc-progress-safe{% endif %}"
+                             style="width: {{ u.usage_percentage }}%;"></div>
+                      </div>
+                      <span class="small text-muted" style="font-size: 0.75rem;">{{ u.usage_percentage }}%</span>
+                    </div>
+                  </td>
+                  <td>
+                    {% if u.is_active %}
+                      <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.72rem;">Active</span>
+                    {% else %}
+                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.72rem;">Deactivated</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    <div class="d-inline-flex gap-1">
+                      <!-- Edit User Button -->
+                      <button type="button" 
+                              class="btn btn-sm btn-outline-primary"
+                              data-bs-toggle="modal" 
+                              data-bs-target="#editUserModal"
+                              data-user-id="{{ u.id }}"
+                              data-user-name="{{ u.username }}"
+                              data-user-email="{{ u.email }}"
+                              data-user-quota-mb="{{ (u.quota_bytes / (1024 * 1024))|round|int }}"
+                              title="Edit user details & quota">
+                        <i class="bi bi-pencil-square"></i>
+                      </button>
+
+                      <!-- Toggle Status Button -->
+                      {% if u.id != g.user.id %}
+                        <form method="POST" action="{{ url_for('admin.toggle_user_status', user_id=u.id) }}" class="d-inline">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                          <button type="submit" 
+                                  class="btn btn-sm {% if u.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                                  title="{% if u.is_active %}Deactivate account{% else %}Activate account{% endif %}">
+                            <i class="bi {% if u.is_active %}bi-person-x{% else %}bi-person-check{% endif %}"></i>
+                          </button>
+                        </form>
+
+                        <!-- Delete User Button -->
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-danger"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#deleteUserModal"
+                                data-user-id="{{ u.id }}"
+                                data-user-name="{{ u.username }}"
+                                title="Delete account and purge files">
+                          <i class="bi bi-trash3"></i>
+                        </button>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center py-5 text-muted">No users found.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-navy" id="createUserModalLabel">
+          <i class="bi bi-person-plus-fill text-teal me-2"></i>Create New User Account
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="{{ url_for('admin.create_user') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Username</label>
+            <input type="text" name="username" class="form-control" placeholder="e.g. john_doe" required minlength="3">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Email Address</label>
+            <input type="email" name="email" class="form-control" placeholder="john@example.com" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Initial Password</label>
+            <input type="password" name="password" class="form-control" required minlength="6" placeholder="At least 6 characters">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label small fw-semibold text-secondary">Role</label>
+              <select name="role" class="form-select">
+                <option value="user" selected>Regular User</option>
+                <option value="admin">Administrator</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold text-secondary">Storage Quota (MB)</label>
+              <input type="number" name="quota_mb" class="form-control" value="{{ default_quota_mb }}" min="1" max="1000000" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-top p-3">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-teal">Create Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-navy" id="editUserModalLabel">
+          <i class="bi bi-pencil-square text-teal me-2"></i>Edit User & Quota
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editUserForm" method="POST" action="">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Username</label>
+            <input type="text" id="editUsername" class="form-control bg-light" disabled>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Email Address</label>
+            <input type="email" id="editEmail" name="email" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Allocated Storage Quota (MB)</label>
+            <input type="number" id="editQuotaMb" name="quota_mb" class="form-control" min="1" max="1000000" required>
+            <div class="form-text small">Updating quota recalculates remaining storage immediately.</div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold text-secondary">Reset Password (Optional)</label>
+            <input type="password" name="password" class="form-control" placeholder="Leave blank to keep current password">
+          </div>
+        </div>
+        <div class="modal-footer border-top p-3">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-teal">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete User Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-danger" id="deleteUserModalLabel">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>Delete User Account
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="deleteUserForm" method="POST" action="">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="modal-body p-4">
+          <p class="mb-2">Are you sure you want to permanently delete user account:</p>
+          <div class="p-3 bg-light rounded-3 fw-bold text-danger text-truncate border mb-3" id="deleteUserTargetName">
+            username
+          </div>
+          <p class="text-muted small mb-0">
+            <i class="bi bi-shield-slash me-1"></i>
+            <strong>Warning:</strong> All files uploaded by this user in local or HDFS storage will be purged, and their database records erased. This action cannot be reversed.
+          </p>
+        </div>
+        <div class="modal-footer border-top p-3">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Permanently Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Populate Edit User Modal
+  const editModal = document.getElementById('editUserModal');
+  if (editModal) {
+    editModal.addEventListener('show.bs.modal', function (event) {
+      const button = event.relatedTarget;
+      const userId = button.getAttribute('data-user-id');
+      const userName = button.getAttribute('data-user-name');
+      const userEmail = button.getAttribute('data-user-email');
+      const userQuotaMb = button.getAttribute('data-user-quota-mb');
+
+      document.getElementById('editUsername').value = userName;
+      document.getElementById('editEmail').value = userEmail;
+      document.getElementById('editQuotaMb').value = userQuotaMb;
+      document.getElementById('editUserForm').action = `/admin/users/${userId}/edit`;
+    });
+  }
+
+  // Populate Delete User Modal
+  const deleteModal = document.getElementById('deleteUserModal');
+  if (deleteModal) {
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+      const button = event.relatedTarget;
+      const userId = button.getAttribute('data-user-id');
+      const userName = button.getAttribute('data-user-name');
+
+      document.getElementById('deleteUserTargetName').textContent = userName;
+      document.getElementById('deleteUserForm').action = `/admin/users/${userId}/delete`;
+    });
+  }
+});
+</script>
+{% endblock %}

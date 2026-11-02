@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ error_code }} — {{ error_title }} — QuotaCloud{% endblock %}
+
+{% block public_content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5 text-center">
+    <div class="card shadow border-0 rounded-4 p-4 p-sm-5">
+      <div class="display-1 fw-bold text-teal mb-2">{{ error_code }}</div>
+      <h3 class="fw-bold text-navy mb-2">{{ error_title }}</h3>
+      <p class="text-secondary mb-4">{{ error_message }}</p>
+      <div>
+        <a href="{{ url_for('user.dashboard') if g.user else url_for('auth.login') }}" class="btn btn-teal px-4 py-2">
+          <i class="bi bi-house-door-fill me-1"></i>Return to Home
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="row justify-content-center py-5">
+    <div class="col-md-6 text-center">
+      <div class="card shadow-sm border-0 rounded-4 p-5">
+        <div class="display-1 fw-bold text-teal mb-2">{{ error_code }}</div>
+        <h3 class="fw-bold text-navy mb-2">{{ error_title }}</h3>
+        <p class="text-secondary mb-4">{{ error_message }}</p>
+        <div>
+          <a href="{{ url_for('admin.dashboard' if g.user and g.user.is_admin else 'user.dashboard') }}" class="btn btn-teal px-4 py-2">
+            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
