@@ -1,16 +1,21 @@
 import os
 from app import create_app
 from models.database import db
-from init_db import seed_database
 
 # Production WSGI application object for Gunicorn
 app = create_app()
 
+# Safe database initialization fallback on worker boot
 with app.app_context():
-    # Ensure database schema exists
-    db.create_all()
-    # Seed default system settings and admin if fresh deployment
-    seed_database()
+    try:
+        db.create_all()
+        from models.database import User
+        if not User.query.filter_by(username='admin').first():
+            from init_db import seed_database
+            seed_database(app=app)
+    except Exception as e:
+        # If another worker or process is concurrently initializing, ignore safely
+        print(f"[WSGI Init Notice] Handled gracefully: {e}")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

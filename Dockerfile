@@ -29,6 +29,9 @@ COPY . .
 # Ensure storage and database instance directories exist
 RUN mkdir -p storage/data instance
 
+# Pre-initialize SQLite database so schema and seed users exist before container startup
+RUN python init_db.py
+
 # Expose port (default 5000, dynamically configurable via $PORT)
 EXPOSE 5000
 
@@ -36,5 +39,6 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:${PORT:-5000}/login || exit 1
 
-# Start production WSGI server with Gunicorn (binds to $PORT for Cloud platforms like Render/Cloud Run, or 5000 locally)
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 --threads 4 --timeout 120 wsgi:app"]
+# Start production WSGI server with Gunicorn
+# Runs init_db.py to ensure database schema and defaults are seeded, then starts Gunicorn with 1 worker and 4 threads for SQLite concurrency safety
+CMD ["sh", "-c", "python init_db.py && gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 1 --threads 4 --timeout 120 wsgi:app"]

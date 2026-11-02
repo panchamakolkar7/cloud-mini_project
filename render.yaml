@@ -3,8 +3,8 @@ services:
     name: quotacloud
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn wsgi:app
+    buildCommand: pip install -r requirements.txt && python init_db.py
+    startCommand: python init_db.py && gunicorn --workers 1 --threads 4 wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9

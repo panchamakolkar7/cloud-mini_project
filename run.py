@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from app import create_app
 from models.database import db
 from init_db import seed_database
@@ -7,10 +8,10 @@ def main():
     app = create_app()
 
     # Automatically initialize tables and seed defaults if first run
-    db_path = app.config['BASE_DIR'] / "quotacloud.db"
-    if not db_path.exists():
+    db_file = Path(app.config['BASE_DIR']) / "instance" / "quotacloud.db"
+    if not db_file.exists():
         print("[QuotaCloud] Initializing fresh database and seeding demo users...")
-        seed_database()
+        seed_database(app=app)
     else:
         with app.app_context():
             db.create_all()

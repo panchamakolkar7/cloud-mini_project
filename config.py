@@ -12,15 +12,30 @@ class Config:
     BASE_DIR = BASE_DIR
     SECRET_KEY = os.getenv("SECRET_KEY", "quotacloud_secure_secret_key_change_in_production_2026")
     
-    # Database URI (supports SQLite locally or PostgreSQL on Render/Cloud)
+    # Instance directory for SQLite database
+    INSTANCE_DIR = BASE_DIR / "instance"
+    INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # Strictly local SQLite database (stored in instance/quotacloud.db)
+    # Allows external DATABASE_URL only if explicitly provided and not SQLite
     raw_db_url = os.getenv("DATABASE_URL")
-    if raw_db_url:
+    if raw_db_url and raw_db_url.strip() and not raw_db_url.startswith("sqlite"):
         if raw_db_url.startswith("postgres://"):
             raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
         SQLALCHEMY_DATABASE_URI = raw_db_url
     else:
-        SQLALCHEMY_DATABASE_URI = f"sqlite:///{BASE_DIR / 'quotacloud.db'}"
+        db_file = (INSTANCE_DIR / "quotacloud.db").resolve()
+        SQLALCHEMY_DATABASE_URI = f"sqlite:///{db_file}"
+        
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # Concurrency and timeout settings for SQLite to prevent locked database errors
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "connect_args": {
+            "timeout": 30,
+            "check_same_thread": False
+        }
+    } if "sqlite" in SQLALCHEMY_DATABASE_URI else {}
     
     # Storage Backend: 'local' or 'hdfs'
     STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "local").lower().strip()
@@ -58,6 +73,7 @@ class Config:
 class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    SQLALCHEMY_ENGINE_OPTIONS = {}
     STORAGE_BACKEND = "local"
     LOCAL_STORAGE_DIR = BASE_DIR / "storage" / "test_data"
     WTF_CSRF_ENABLED = False
